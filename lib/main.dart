@@ -164,7 +164,11 @@ class _SplashScreenState extends State<SplashScreen> with SingleTickerProviderSt
           decoration: BoxDecoration(
             color: AppColors.accent,
             borderRadius: BorderRadius.circular(24),
-            boxShadow: [BoxShadow(color: AppColors.accent.withValues(alpha: 0.4), blurRadius: 32, spreadRadius: 4)],
+            // ALTERADO: brilho mais intenso no splash
+            boxShadow: [
+              BoxShadow(color: AppColors.accent.withValues(alpha: 0.6), blurRadius: 40, spreadRadius: 8),
+              BoxShadow(color: AppColors.accent.withValues(alpha: 0.3), blurRadius: 80, spreadRadius: 16),
+            ],
           ),
           child: const Icon(Icons.check_rounded, size: 44, color: Colors.white),
         ),
@@ -274,7 +278,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     final result = await showModalBottomSheet<Task>(
       context: context,
       isScrollControlled: true,
-      backgroundColor: Colors.transparent,
+      barrierColor: Colors.black.withValues(alpha: 0.75),
       builder: (_) => TaskFormSheet(task: task),
     );
     if (result != null) {
@@ -351,19 +355,27 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
       backgroundColor: AppColors.bg,
       extendBody: true,
       body: Stack(children: [
-        // Conteúdo principal
         _currentTab == 0
             ? SafeArea(child: Column(children: [
                 Padding(
                   padding: const EdgeInsets.fromLTRB(16, 16, 16, 0),
                   child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                    // Header
+                    // ─── HEADER ALTERADO: ícone maior com brilho ───
                     Row(children: [
-                      Container(width: 32, height: 32,
-                        decoration: BoxDecoration(color: AppColors.accent, borderRadius: BorderRadius.circular(10)),
-                        child: const Icon(Icons.check_rounded, size: 18, color: Colors.white),
+                      Container(
+                        width: 38, height: 38,
+                        decoration: BoxDecoration(
+                          color: AppColors.accent,
+                          borderRadius: BorderRadius.circular(11),
+                          // ALTERADO: brilho laranja no ícone do header
+                          boxShadow: [
+                            BoxShadow(color: AppColors.accent.withValues(alpha: 0.55), blurRadius: 14, spreadRadius: 2),
+                          ],
+                        ),
+                        // ALTERADO: ícone check maior e mais bold
+                        child: const Icon(Icons.check_rounded, size: 22, color: Colors.white),
                       ),
-                      const SizedBox(width: 8),
+                      const SizedBox(width: 10),
                       RichText(text: const TextSpan(children: [
                         TextSpan(text: 'Do', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.text, letterSpacing: -0.5)),
                         TextSpan(text: 'Daily', style: TextStyle(fontSize: 22, fontWeight: FontWeight.w900, color: AppColors.accent, letterSpacing: -0.5)),
@@ -477,22 +489,20 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ]))
             : StatsScreen(tasks: _tasks),
 
-        // ─── NAVBAR CORRIGIDA ───────────────────────────────────────
-        // FIX: Usar SizedBox + Stack centralizado em vez de Row spaceAround
-        // que deslocava o botão + dependendo do padding do sistema.
+        // ─── NAVBAR: blur visível com opacidade reduzida ───────────
         Positioned(
           left: 0, right: 0, bottom: 0,
           child: ClipRect(
             child: BackdropFilter(
               filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
               child: Container(
-                color: const Color(0xE60A0A0A),
+                // ALTERADO: 0x99 = 60% opacidade, blur aparece
+                color: const Color(0x990A0A0A),
                 height: 72 + bottomPad,
                 padding: EdgeInsets.only(bottom: bottomPad),
                 child: Stack(
                   alignment: Alignment.center,
                   children: [
-                    // Dois itens laterais em Row com Expanded para forçar simetria
                     Row(
                       children: [
                         Expanded(
@@ -503,7 +513,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                             onTap: () => setState(() => _currentTab = 0),
                           ),
                         ),
-                        // Espaço reservado para o botão central (largura 72)
                         const SizedBox(width: 72),
                         Expanded(
                           child: _NavItem(
@@ -515,7 +524,6 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
                         ),
                       ],
                     ),
-                    // Botão + centralizado por cima via Stack
                     GestureDetector(
                       onTap: () => _openForm(),
                       child: Container(
@@ -598,7 +606,6 @@ class _TaskCardState extends State<_TaskCard> with SingleTickerProviderStateMixi
             border: Border.all(color: AppColors.border),
           ),
           child: Row(crossAxisAlignment: CrossAxisAlignment.center, children: [
-            // Checkbox
             Padding(
               padding: const EdgeInsets.fromLTRB(14, 16, 10, 16),
               child: GestureDetector(
@@ -621,7 +628,6 @@ class _TaskCardState extends State<_TaskCard> with SingleTickerProviderStateMixi
               ),
             ),
 
-            // Conteúdo
             Expanded(child: Padding(
               padding: const EdgeInsets.fromLTRB(0, 14, 8, 14),
               child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
@@ -655,7 +661,6 @@ class _TaskCardState extends State<_TaskCard> with SingleTickerProviderStateMixi
               ]),
             )),
 
-            // Ações
             Column(mainAxisAlignment: MainAxisAlignment.center, children: [
               _ActionBtn(icon: Icons.edit_rounded, color: AppColors.textMute, onTap: widget.onEdit),
               _ActionBtn(icon: Icons.delete_rounded, color: AppColors.priAlta.withValues(alpha: 0.7), onTap: widget.onDelete),
@@ -698,6 +703,16 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
 
   @override
   void dispose() { _title.dispose(); _desc.dispose(); super.dispose(); }
+
+  IconData _catIcon(String c) {
+    switch (c) {
+      case 'Trabalho': return Icons.work_outline;
+      case 'Estudo':   return Icons.school_outlined;
+      case 'Pessoal':  return Icons.person_outline;
+      case 'Saúde':    return Icons.favorite_outline;
+      default:         return Icons.category_outlined;
+    }
+  }
 
   void _onTitleChanged(String value) {
     final detected = detectCategory(value);
@@ -750,13 +765,11 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
       ),
       padding: EdgeInsets.only(bottom: bottomPad + keyboardPad),
       child: Column(mainAxisSize: MainAxisSize.min, children: [
-        // Handle
         const SizedBox(height: 12),
         Container(width: 40, height: 4,
           decoration: BoxDecoration(color: AppColors.borderHi, borderRadius: BorderRadius.circular(999))),
         const SizedBox(height: 16),
 
-        // Header
         Padding(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Row(children: [
@@ -773,11 +786,9 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
         ),
         const SizedBox(height: 20),
 
-        // Form
         Flexible(child: SingleChildScrollView(
           padding: const EdgeInsets.symmetric(horizontal: 20),
           child: Form(key: _formKey, child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-            // Título
             _SheetLabel('TÍTULO'),
             const SizedBox(height: 6),
             TextFormField(
@@ -789,7 +800,6 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
               validator: (v) => v == null || v.trim().isEmpty ? 'Informe um título' : null,
             ),
 
-            // Badge auto categoria
             if (_autoCategory) ...[
               const SizedBox(height: 8),
               Row(children: [
@@ -810,7 +820,6 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
 
             const SizedBox(height: 16),
 
-            // Descrição
             _SheetLabel('DESCRIÇÃO'),
             const SizedBox(height: 6),
             TextFormField(
@@ -821,7 +830,6 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
             ),
             const SizedBox(height: 16),
 
-            // Categoria
             _SheetLabel('CATEGORIA'),
             const SizedBox(height: 8),
             Wrap(spacing: 8, runSpacing: 8, children: _cats.map((c) {
@@ -837,17 +845,20 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
                     borderRadius: BorderRadius.circular(999),
                     border: Border.all(color: sel ? color : AppColors.border, width: sel ? 1.5 : 1),
                   ),
-                  child: Text(c, style: TextStyle(
-                    color: sel ? color : AppColors.textDim,
-                    fontSize: 13,
-                    fontWeight: sel ? FontWeight.w600 : FontWeight.normal,
-                  )),
+                  child: Row(mainAxisSize: MainAxisSize.min, children: [
+                    Icon(_catIcon(c), size: 14, color: sel ? color : AppColors.textDim),
+                    const SizedBox(width: 6),
+                    Text(c, style: TextStyle(
+                      color: sel ? color : AppColors.textDim,
+                      fontSize: 13,
+                      fontWeight: sel ? FontWeight.w600 : FontWeight.normal,
+                    )),
+                  ]),
                 ),
               );
             }).toList()),
             const SizedBox(height: 16),
 
-            // Prioridade
             _SheetLabel('PRIORIDADE'),
             const SizedBox(height: 8),
             Row(children: _pris.map((p) {
@@ -860,16 +871,21 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
                   margin: EdgeInsets.only(right: p != 'Baixa' ? 8 : 0),
                   padding: const EdgeInsets.symmetric(vertical: 12),
                   decoration: BoxDecoration(
-                    color: sel ? color.withValues(alpha: 0.15) : AppColors.surface,
+                    // ALTERADO: fundo sólido quando selecionado
+                    color: sel ? color : AppColors.surface,
                     borderRadius: BorderRadius.circular(12),
                     border: Border.all(color: sel ? color : AppColors.border, width: sel ? 1.5 : 1),
                   ),
                   child: Column(children: [
                     Container(width: 8, height: 8,
-                      decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                      decoration: BoxDecoration(
+                        color: sel ? Colors.white : color,
+                        shape: BoxShape.circle,
+                      )),
                     const SizedBox(height: 6),
                     Text(p, style: TextStyle(
-                      color: sel ? color : AppColors.textDim,
+                      // ALTERADO: texto branco quando selecionado
+                      color: sel ? Colors.white : AppColors.textDim,
                       fontSize: 13,
                       fontWeight: sel ? FontWeight.w600 : FontWeight.normal,
                     )),
@@ -879,7 +895,6 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
             }).toList()),
             const SizedBox(height: 16),
 
-            // Data Limite
             _SheetLabel('DATA LIMITE'),
             const SizedBox(height: 6),
             GestureDetector(
@@ -910,7 +925,6 @@ class _TaskFormSheetState extends State<TaskFormSheet> {
             ),
             const SizedBox(height: 24),
 
-            // Botão salvar
             SizedBox(width: double.infinity,
               child: ElevatedButton(
                 onPressed: _save,
@@ -995,7 +1009,6 @@ class _StatsScreenState extends State<StatsScreen> with SingleTickerProviderStat
           const Text('Visão geral do seu desempenho', style: TextStyle(color: AppColors.textDim, fontSize: 14)),
           const SizedBox(height: 20),
 
-          // Grid 2x2
           Row(children: [
             Expanded(child: _StatCard('Total', total.toString(), Icons.format_list_bulleted_rounded, AppColors.accent, _anim.value)),
             const SizedBox(width: 12),
@@ -1009,9 +1022,6 @@ class _StatsScreenState extends State<StatsScreen> with SingleTickerProviderStat
           ]),
           const SizedBox(height: 24),
 
-          // ─── FIX: Seções de categoria e prioridade sempre visíveis ───
-          // Antes: `if (catGroups.isNotEmpty)` ocultava tudo com 0 tarefas.
-          // Agora: sempre exibe, mostrando estado vazio quando não há dados.
           _SectionLabel('POR CATEGORIA'),
           const SizedBox(height: 10),
           Container(
@@ -1099,7 +1109,6 @@ class _StatsScreenState extends State<StatsScreen> with SingleTickerProviderStat
 
           const SizedBox(height: 20),
 
-          // Taxa de conclusão
           _SectionLabel('TAXA DE CONCLUSÃO'),
           const SizedBox(height: 10),
           Container(
