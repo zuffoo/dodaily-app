@@ -477,7 +477,9 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               ]))
             : StatsScreen(tasks: _tasks),
 
-        // Navbar com blur
+        // ─── NAVBAR CORRIGIDA ───────────────────────────────────────
+        // FIX: Usar SizedBox + Stack centralizado em vez de Row spaceAround
+        // que deslocava o botão + dependendo do padding do sistema.
         Positioned(
           left: 0, right: 0, bottom: 0,
           child: ClipRect(
@@ -485,23 +487,55 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
               filter: ImageFilter.blur(sigmaX: 20, sigmaY: 20),
               child: Container(
                 color: const Color(0xE60A0A0A),
-                padding: EdgeInsets.only(bottom: bottomPad),
                 height: 72 + bottomPad,
-                child: Row(mainAxisAlignment: MainAxisAlignment.spaceAround, children: [
-                  _NavItem(icon: Icons.check_circle_outline_rounded, label: 'Tarefas', selected: _currentTab == 0, onTap: () => setState(() => _currentTab = 0)),
-                  GestureDetector(
-                    onTap: () => _openForm(),
-                    child: Container(
-                      width: 48, height: 48,
-                      decoration: BoxDecoration(
-                        color: AppColors.accent, shape: BoxShape.circle,
-                        boxShadow: [BoxShadow(color: AppColors.accent.withValues(alpha: 0.4), blurRadius: 16, offset: const Offset(0, 4))],
-                      ),
-                      child: const Icon(Icons.add_rounded, color: Colors.white, size: 26),
+                padding: EdgeInsets.only(bottom: bottomPad),
+                child: Stack(
+                  alignment: Alignment.center,
+                  children: [
+                    // Dois itens laterais em Row com Expanded para forçar simetria
+                    Row(
+                      children: [
+                        Expanded(
+                          child: _NavItem(
+                            icon: Icons.check_circle_outline_rounded,
+                            label: 'Tarefas',
+                            selected: _currentTab == 0,
+                            onTap: () => setState(() => _currentTab = 0),
+                          ),
+                        ),
+                        // Espaço reservado para o botão central (largura 72)
+                        const SizedBox(width: 72),
+                        Expanded(
+                          child: _NavItem(
+                            icon: Icons.bar_chart_rounded,
+                            label: 'Estatísticas',
+                            selected: _currentTab == 1,
+                            onTap: () => setState(() => _currentTab = 1),
+                          ),
+                        ),
+                      ],
                     ),
-                  ),
-                  _NavItem(icon: Icons.bar_chart_rounded, label: 'Estatísticas', selected: _currentTab == 1, onTap: () => setState(() => _currentTab = 1)),
-                ]),
+                    // Botão + centralizado por cima via Stack
+                    GestureDetector(
+                      onTap: () => _openForm(),
+                      child: Container(
+                        width: 52, height: 52,
+                        decoration: BoxDecoration(
+                          color: AppColors.accent,
+                          shape: BoxShape.circle,
+                          boxShadow: [
+                            BoxShadow(
+                              color: AppColors.accent.withValues(alpha: 0.45),
+                              blurRadius: 18,
+                              offset: const Offset(0, 4),
+                            ),
+                          ],
+                        ),
+                        child: const Icon(Icons.add_rounded, color: Colors.white, size: 28),
+                      ),
+                    ),
+                  ],
+                ),
               ),
             ),
           ),
@@ -510,6 +544,7 @@ class _HomeScreenState extends State<HomeScreen> with TickerProviderStateMixin {
     );
   }
 }
+
 // ─── TASK CARD ─────────────────────────────────────────────────────
 class _TaskCard extends StatefulWidget {
   final Task task;
@@ -974,74 +1009,93 @@ class _StatsScreenState extends State<StatsScreen> with SingleTickerProviderStat
           ]),
           const SizedBox(height: 24),
 
-          // Por categoria
-          if (catGroups.isNotEmpty) ...[
-            _SectionLabel('POR CATEGORIA'),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-              child: Column(children: catGroups.entries.map((e) {
-                final color = AppColors.catColor(e.key);
-                final frac = total == 0 ? 0.0 : e.value / total;
-                return Padding(padding: const EdgeInsets.only(bottom: 14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                    Text(e.key, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13)),
-                    Text('${e.value}', style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
-                  ]),
-                  const SizedBox(height: 6),
-                  Stack(children: [
-                    Container(height: 6, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(999))),
-                    FractionallySizedBox(
-                      widthFactor: frac * _anim.value,
-                      child: Container(height: 6, decoration: BoxDecoration(
-                        color: color, borderRadius: BorderRadius.circular(999),
-                        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 6)],
-                      )),
-                    ),
-                  ]),
-                ]));
-              }).toList()),
+          // ─── FIX: Seções de categoria e prioridade sempre visíveis ───
+          // Antes: `if (catGroups.isNotEmpty)` ocultava tudo com 0 tarefas.
+          // Agora: sempre exibe, mostrando estado vazio quando não há dados.
+          _SectionLabel('POR CATEGORIA'),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
             ),
-          ],
+            child: catGroups.isEmpty
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text('Nenhuma tarefa ainda', style: TextStyle(color: AppColors.textMute, fontSize: 13)),
+                    ),
+                  )
+                : Column(children: catGroups.entries.map((e) {
+                    final color = AppColors.catColor(e.key);
+                    final frac = total == 0 ? 0.0 : e.value / total;
+                    return Padding(padding: const EdgeInsets.only(bottom: 14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                        Text(e.key, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13)),
+                        Text('${e.value}', style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
+                      ]),
+                      const SizedBox(height: 6),
+                      Stack(children: [
+                        Container(height: 6, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(999))),
+                        FractionallySizedBox(
+                          widthFactor: frac * _anim.value,
+                          child: Container(height: 6, decoration: BoxDecoration(
+                            color: color, borderRadius: BorderRadius.circular(999),
+                            boxShadow: [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 6)],
+                          )),
+                        ),
+                      ]),
+                    ]));
+                  }).toList()),
+          ),
 
           const SizedBox(height: 20),
 
-          // Por prioridade
-          if (priGroups.isNotEmpty) ...[
-            _SectionLabel('POR PRIORIDADE'),
-            const SizedBox(height: 10),
-            Container(
-              padding: const EdgeInsets.all(16),
-              decoration: BoxDecoration(color: AppColors.surface, borderRadius: BorderRadius.circular(16), border: Border.all(color: AppColors.border)),
-              child: Column(children: ['Alta', 'Média', 'Baixa'].where((p) => priGroups.containsKey(p)).map((p) {
-                final color = AppColors.priColor(p);
-                final count = priGroups[p] ?? 0;
-                final frac = total == 0 ? 0.0 : count / total;
-                return Padding(padding: const EdgeInsets.only(bottom: 14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
-                  Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
-                    Row(children: [
-                      Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
-                      const SizedBox(width: 8),
-                      Text(p, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13)),
-                    ]),
-                    Text('$count', style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
-                  ]),
-                  const SizedBox(height: 6),
-                  Stack(children: [
-                    Container(height: 6, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(999))),
-                    FractionallySizedBox(
-                      widthFactor: frac * _anim.value,
-                      child: Container(height: 6, decoration: BoxDecoration(
-                        color: color, borderRadius: BorderRadius.circular(999),
-                        boxShadow: [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 6)],
-                      )),
-                    ),
-                  ]),
-                ]));
-              }).toList()),
+          _SectionLabel('POR PRIORIDADE'),
+          const SizedBox(height: 10),
+          Container(
+            padding: const EdgeInsets.all(16),
+            decoration: BoxDecoration(
+              color: AppColors.surface,
+              borderRadius: BorderRadius.circular(16),
+              border: Border.all(color: AppColors.border),
             ),
-          ],
+            child: priGroups.isEmpty
+                ? const Center(
+                    child: Padding(
+                      padding: EdgeInsets.symmetric(vertical: 12),
+                      child: Text('Nenhuma tarefa ainda', style: TextStyle(color: AppColors.textMute, fontSize: 13)),
+                    ),
+                  )
+                : Column(children: ['Alta', 'Média', 'Baixa'].where((p) => priGroups.containsKey(p)).map((p) {
+                    final color = AppColors.priColor(p);
+                    final count = priGroups[p] ?? 0;
+                    final frac = total == 0 ? 0.0 : count / total;
+                    return Padding(padding: const EdgeInsets.only(bottom: 14), child: Column(crossAxisAlignment: CrossAxisAlignment.start, children: [
+                      Row(mainAxisAlignment: MainAxisAlignment.spaceBetween, children: [
+                        Row(children: [
+                          Container(width: 8, height: 8, decoration: BoxDecoration(color: color, shape: BoxShape.circle)),
+                          const SizedBox(width: 8),
+                          Text(p, style: TextStyle(color: color, fontWeight: FontWeight.w600, fontSize: 13)),
+                        ]),
+                        Text('$count', style: const TextStyle(color: AppColors.textDim, fontSize: 12)),
+                      ]),
+                      const SizedBox(height: 6),
+                      Stack(children: [
+                        Container(height: 6, decoration: BoxDecoration(color: AppColors.border, borderRadius: BorderRadius.circular(999))),
+                        FractionallySizedBox(
+                          widthFactor: frac * _anim.value,
+                          child: Container(height: 6, decoration: BoxDecoration(
+                            color: color, borderRadius: BorderRadius.circular(999),
+                            boxShadow: [BoxShadow(color: color.withValues(alpha: 0.5), blurRadius: 6)],
+                          )),
+                        ),
+                      ]),
+                    ]));
+                  }).toList()),
+          ),
 
           const SizedBox(height: 20),
 
@@ -1181,7 +1235,7 @@ class _NavItem extends StatelessWidget {
   @override
   Widget build(BuildContext context) => GestureDetector(
     onTap: onTap,
-    child: Column(mainAxisSize: MainAxisSize.min, children: [
+    child: Column(mainAxisSize: MainAxisSize.min, mainAxisAlignment: MainAxisAlignment.center, children: [
       Icon(icon, size: 22, color: selected ? AppColors.accent : AppColors.textMute),
       const SizedBox(height: 3),
       Text(label, style: TextStyle(fontSize: 11, color: selected ? AppColors.accent : AppColors.textMute,
